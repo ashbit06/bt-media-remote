@@ -1,6 +1,7 @@
 #include <HijelHID_BLEKeyboard.h>
+#include <string.h>
 
-HijelHID_BLEKeyboard keyboard("bt-remote", "chuds", 100);
+HijelHID_BLEKeyboard keyboard("bt-remote", "group 4", 100);
 
 enum {
   PLAY_PAUSE = 2,
@@ -10,15 +11,24 @@ enum {
   VOLUME_DOWN = 6
 };
 
-int playPauseButton, skipForwardButton, skipBackwardButton, \
-  volumeUpButton, volumeDownButton = 0;
 
+// extra variable for detecting the moment when we are connected
 int connected = 0;
 
-void writeRGB(int r, int g, int b) {
-  analogWrite(LED_RED, r);
-  analogWrite(LED_GREEN, g);
-  analogWrite(LED_BLUE, b);
+// keep track of what buttons are currently held
+int playPauseButton, skipForwardButton, skipBackwardButton, volumeUpButton, volumeDownButton = 0;
+
+// keep track of what buttons were pressed in the previous loop
+int playPauseButtonLast, skipForwardButtonLast, skipBackwardButtonLast, volumeUpButtonLast, volumeDownButtonLast = 0;
+
+// keep track of how long the buttons were pressed for (currently)
+int playPauseButtonHeld, skipForwardButtonHeld, skipBackwardButtonHeld, volumeUpButtonHeld, volumeDownButtonHeld = 0;
+
+
+void writeRGB(bool r, bool g, bool b) {
+  digitalWrite(LEDR, !r);
+  digitalWrite(LEDG, !g);
+  digitalWrite(LEDB, !b);
 }
 
 void setup() {
@@ -32,37 +42,61 @@ void setup() {
   pinMode(SKIP_BACKWARD, INPUT);
   pinMode(VOLUME_UP, INPUT);
   pinMode(VOLUME_DOWN, INPUT);
-  
-  // initialize led
-  pinMode(LED_RED, OUTPUT);
-  pinMode(LED_GREEN, OUTPUT);
-  pinMode(LED_BLUE, OUTPUT);
+
+  pinMode(LEDR, OUTPUT);
+  pinMode(LEDG, OUTPUT);
+  pinMode(LEDB, OUTPUT);
 
   // initialize bluetooth keyboard
   keyboard.begin();
   Serial.println("bluetooth started");
-
+  writeRGB(LOW, HIGH, LOW);
   delay(5000);
 }
 
 void loop() {
+  playPauseButton = digitalRead(PLAY_PAUSE);
+  skipForwardButton = digitalRead(SKIP_FORWARD);
+  skipBackwardButton = digitalRead(SKIP_BACKWARD);
+  volumeUpButton = digitalRead(VOLUME_UP);
+  volumeDownButton = digitalRead(VOLUME_DOWN);
+
+  if (playPauseButtonLast == playPauseButton) playPauseButtonHeld++;            else playPauseButtonHeld = 0;
+  if (skipForwardButtonLast == skipForwardButton) skipForwardButtonHeld++;      else skipForwardButtonHeld = 0;
+  if (skipBackwardButtonLast == skipBackwardButton) skipBackwardButtonHeld++;   else skipBackwardButtonHeld = 0;
+  if (volumeUpButtonLast == volumeUpButton) volumeUpButtonHeld++;               else volumeUpButtonHeld = 0;
+  if (volumeDownButtonLast == volumeDownButton) volumeDownButtonHeld++;         else volumeDownButtonHeld = 0;
+
   if (keyboard.isConnected()) {
     if (!connected) {
       Serial.println("connected to device");
-      writeRGB(0, 128, 0);
+      for (int i = 0; i < 4; i++) {
+        // blink 4 times in 1 second
+        writeRGB(LOW, LOW, HIGH);
+        delay(125);
+        writeRGB(LOW, LOW, LOW);
+        delay(125);
+      }
+      writeRGB(HIGH, HIGH, HIGH);
       connected = 1;
       delay(500);
     }
 
-    playPauseButton = digitalRead(PLAY_PAUSE);
-    skipForwardButton = digitalRead(SKIP_FORWARD);
-    skipBackwardButton = digitalRead(SKIP_BACKWARD);
-    volumeUpButton = digitalRead(VOLUME_UP);
-    volumeDownButton = digitalRead(VOLUME_DOWN);
-
+    char buffer[10];
+    snprintf(buffer, sizeof(buffer), "%d %d %d %d %d", playPauseButton, skipBackwardButton, skipForwardButton, volumeUpButton, volumeDownButton);
     Serial.println("P < > + -");
-    Serial.printf("%d %d %d %d %d\n", playPauseButton, skipBackwardButton,
-      skipForwardButton, volumeUpButton, volumeDownButton);
+    Serial.println(buffer);
+
+    // pairing -- only play & volume up buttons pressed for 5 seconds
+    if (playPauseButton && volumeUpButton && !(skipForwardButton || skipBackwardButton || volumeDownButton)) {
+      Serial.println("pairing mode");
+    } else {  // not pairing
+      if (playPauseButton) keyboard.tap(MEDIA_PLAY_PAUSE);
+      if (skipForwardButton) keyboard.tap(MEDIA_NEXT_TRACK);
+      if (skipBackwardButton) keyboard.tap(MEDIA_PREV_TRACK);
+      if (volumeUpButton) keyboard.tap(MEDIA_VOLUME_UP);
+      if (volumeDownButton) keyboard.tap(MEDIA_VOLUME_DOWN);
+    }
   }
   
   else {
@@ -73,42 +107,18 @@ void loop() {
 
     Serial.println("searching for bluetooth device...");
 
-    // breathe blue for every second that there is no device
-    analogWrite(LED_RED, 0);
-    analogWrite(LED_GREEN, 0);
-    for (int i = 0; i < 100; i++) {
-      analogWrite(LED_BLUE, i+50);
-      delay(5);
-    }
-    for (int i = 99; i >= 0; i--) {
-      analogWrite(LED_BLUE, i+50);
-      delay(5);
-    }
+    // blink blue for every second that there is no device
+    writeRGB(LOW, LOW, HIGH);
+    delay(500);
+    writeRGB(LOW, LOW, LOW);
+    delay(500);
   }
 
-/* test code for reference or whatever
-  if (keyboard.isConnected()) {
-    Serial.println("connected; typing stuff");
-    // Print "Hello, World!"
-    keyboard.print("Hello, ");
-    keyboard.println("World!");
-    // Press and Tap "ESP32!"
-    keyboard.press(KEY_LSHIFT);
-    delay(25);
-    keyboard.tap(KEY_E);
-    keyboard.tap(KEY_S);
-    keyboard.tap(KEY_P);
-    keyboard.release(KEY_LSHIFT);
-    keyboard.tap(KEY_3);
-    keyboard.tap(KEY_2);
-    // tap an exclamation point "!"
-    keyboard.tap(KEY_1, KEY_MOD_LSHIFT);
-    keyboard.tap(KEY_RETURN);
-    
-    keyboard.releaseAll();
+  playPauseButtonLast = playPauseButton;
+  skipForwardButtonLast = skipForwardButton;
+  skipBackwardButtonLast = skipBackwardButton;
+  volumeUpButtonLast = volumeUpButton;
+  volumeDownButtonLast = volumeDownButton;
 
-    // wait for device to disconnect before running again
-    while (keyboard.isConnected());
-  }
-*/
+  keyboard.releaseAll();
 }
