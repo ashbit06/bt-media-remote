@@ -18,3 +18,5 @@ a small device to control media playback over bluetooth
   - bms
   - usbc charging
 - 3d printed housing probably
+
+[arduino api docs](https://docs.arduino.cc/learn/programming/reference/)

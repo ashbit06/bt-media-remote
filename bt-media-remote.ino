@@ -1,6 +1,7 @@
 #include <HijelHID_BLEKeyboard.h>
 #include <string.h>
 
+
 HijelHID_BLEKeyboard keyboard("bt-remote", "group 4", 100);
 
 enum {
@@ -16,13 +17,16 @@ enum {
 int connected = 0;
 
 // keep track of what buttons are currently held
-int playPauseButton, skipForwardButton, skipBackwardButton, volumeUpButton, volumeDownButton = 0;
+int playPauseButton, skipForwardButton, skipBackwardButton,
+  volumeUpButton, volumeDownButton = 0;
 
 // keep track of what buttons were pressed in the previous loop
-int playPauseButtonLast, skipForwardButtonLast, skipBackwardButtonLast, volumeUpButtonLast, volumeDownButtonLast = 0;
+int playPauseButtonLast, skipForwardButtonLast,
+  skipBackwardButtonLast, volumeUpButtonLast, volumeDownButtonLast = 0;
 
 // keep track of how long the buttons were pressed for (currently)
-int playPauseButtonHeld, skipForwardButtonHeld, skipBackwardButtonHeld, volumeUpButtonHeld, volumeDownButtonHeld = 0;
+int playPauseButtonHeld, skipForwardButtonHeld,
+  skipBackwardButtonHeld, volumeUpButtonHeld, volumeDownButtonHeld = 0;
 
 
 void writeRGB(bool r, bool g, bool b) {
@@ -34,8 +38,8 @@ void writeRGB(bool r, bool g, bool b) {
 void setup() {
   // initialize serial, disable when not connected to usb
   Serial.begin(115200);
-  while (!Serial);
-  
+  while (!Serial) {}
+
   // initialize inputs
   pinMode(PLAY_PAUSE, INPUT);
   pinMode(SKIP_FORWARD, INPUT);
@@ -61,11 +65,20 @@ void loop() {
   volumeUpButton = digitalRead(VOLUME_UP);
   volumeDownButton = digitalRead(VOLUME_DOWN);
 
-  if (playPauseButtonLast == playPauseButton) playPauseButtonHeld++;            else playPauseButtonHeld = 0;
-  if (skipForwardButtonLast == skipForwardButton) skipForwardButtonHeld++;      else skipForwardButtonHeld = 0;
-  if (skipBackwardButtonLast == skipBackwardButton) skipBackwardButtonHeld++;   else skipBackwardButtonHeld = 0;
-  if (volumeUpButtonLast == volumeUpButton) volumeUpButtonHeld++;               else volumeUpButtonHeld = 0;
-  if (volumeDownButtonLast == volumeDownButton) volumeDownButtonHeld++;         else volumeDownButtonHeld = 0;
+  if (playPauseButtonLast == playPauseButton) playPauseButtonHeld++;
+  else playPauseButtonHeld = 0;
+
+  if (skipForwardButtonLast == skipForwardButton) skipForwardButtonHeld++;
+  else skipForwardButtonHeld = 0;
+
+  if (skipBackwardButtonLast == skipBackwardButton) skipBackwardButtonHeld++;
+  else skipBackwardButtonHeld = 0;
+
+  if (volumeUpButtonLast == volumeUpButton) volumeUpButtonHeld++;
+  else volumeUpButtonHeld = 0;
+
+  if (volumeDownButtonLast == volumeDownButton) volumeDownButtonHeld++;
+  else volumeDownButtonHeld = 0;
 
   if (keyboard.isConnected()) {
     if (!connected) {
@@ -83,12 +96,14 @@ void loop() {
     }
 
     char buffer[10];
-    snprintf(buffer, sizeof(buffer), "%d %d %d %d %d", playPauseButton, skipBackwardButton, skipForwardButton, volumeUpButton, volumeDownButton);
+    snprintf(buffer, sizeof(buffer), "%d %d %d %d %d", playPauseButton,
+      skipBackwardButton, skipForwardButton, volumeUpButton, volumeDownButton);
     Serial.println("P < > + -");
     Serial.println(buffer);
 
     // pairing -- only play & volume up buttons pressed for 5 seconds
-    if (playPauseButton && volumeUpButton && !(skipForwardButton || skipBackwardButton || volumeDownButton)) {
+    if (playPauseButton && volumeUpButton &&
+        !(skipForwardButton || skipBackwardButton || volumeDownButton)) {
       Serial.println("pairing mode");
     } else {  // not pairing
       if (playPauseButton) keyboard.tap(MEDIA_PLAY_PAUSE);
@@ -97,9 +112,7 @@ void loop() {
       if (volumeUpButton) keyboard.tap(MEDIA_VOLUME_UP);
       if (volumeDownButton) keyboard.tap(MEDIA_VOLUME_DOWN);
     }
-  }
-  
-  else {
+  } else {
     if (connected) {
       Serial.println("disconnected from device");
       connected = 0;
