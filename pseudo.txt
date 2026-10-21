@@ -1,0 +1,27 @@
+import libaries
+initialize bluetooth
+define pins
+
+setup():
+    initialize serial for debugging
+    initialize pins
+
+    start bluetooth
+
+loop():
+    read button pins
+
+    calculate how long every button has been held for
+
+    if bluetooth connected:        
+        detect pairing button stuff
+        play/pause button stuff
+        skip forward button stuff
+        skip backward button stuff
+        volume up botton stuff
+        volume down button stuff
+
+    else (bluetooth not connected)
+        search for device every 1 second
+
+    store buttons pressed in this loop
