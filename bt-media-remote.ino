@@ -24,15 +24,30 @@ int playPauseButton, skipForwardButton, skipBackwardButton,
 int playPauseButtonLast, skipForwardButtonLast,
   skipBackwardButtonLast, volumeUpButtonLast, volumeDownButtonLast = 0;
 
-// keep track of how long the buttons were pressed for (currently)
-int playPauseButtonHeld, skipForwardButtonHeld,
+// Track held duration in milliseconds, with a start timestamp for each press.
+uint32_t playPauseButtonHeld, skipForwardButtonHeld,
   skipBackwardButtonHeld, volumeUpButtonHeld, volumeDownButtonHeld = 0;
+
+uint32_t playPauseButtonPressedAt, skipForwardButtonPressedAt,
+  skipBackwardButtonPressedAt, volumeUpButtonPressedAt,
+  volumeDownButtonPressedAt = 0;
 
 
 void writeRGB(bool r, bool g, bool b) {
   digitalWrite(LEDR, !r);
   digitalWrite(LEDG, !g);
   digitalWrite(LEDB, !b);
+}
+
+void updateButtonHeld(int button, int buttonLast, uint32_t now,
+  uint32_t &pressedAt, uint32_t &held) {
+  if (button) {
+    if (!buttonLast) pressedAt = now;
+    held = now - pressedAt;
+  } else {
+    pressedAt = 0;
+    held = 0;
+  }
 }
 
 void setup() {
@@ -52,6 +67,8 @@ void setup() {
   pinMode(LEDB, OUTPUT);
 
   // initialize bluetooth keyboard
+  keyboard.setTapDelay(50);
+  keyboard.setKeyGap(50);
   keyboard.begin();
   Serial.println("bluetooth started");
   writeRGB(LOW, HIGH, LOW);
@@ -65,20 +82,17 @@ void loop() {
   volumeUpButton = digitalRead(VOLUME_UP);
   volumeDownButton = digitalRead(VOLUME_DOWN);
 
-  if (playPauseButtonLast == playPauseButton) playPauseButtonHeld++;
-  else playPauseButtonHeld = 0;
-
-  if (skipForwardButtonLast == skipForwardButton) skipForwardButtonHeld++;
-  else skipForwardButtonHeld = 0;
-
-  if (skipBackwardButtonLast == skipBackwardButton) skipBackwardButtonHeld++;
-  else skipBackwardButtonHeld = 0;
-
-  if (volumeUpButtonLast == volumeUpButton) volumeUpButtonHeld++;
-  else volumeUpButtonHeld = 0;
-
-  if (volumeDownButtonLast == volumeDownButton) volumeDownButtonHeld++;
-  else volumeDownButtonHeld = 0;
+  uint32_t now = millis();
+  updateButtonHeld(playPauseButton, playPauseButtonLast, now,
+    playPauseButtonPressedAt, playPauseButtonHeld);
+  updateButtonHeld(skipForwardButton, skipForwardButtonLast, now,
+    skipForwardButtonPressedAt, skipForwardButtonHeld);
+  updateButtonHeld(skipBackwardButton, skipBackwardButtonLast, now,
+    skipBackwardButtonPressedAt, skipBackwardButtonHeld);
+  updateButtonHeld(volumeUpButton, volumeUpButtonLast, now,
+    volumeUpButtonPressedAt, volumeUpButtonHeld);
+  updateButtonHeld(volumeDownButton, volumeDownButtonLast, now,
+    volumeDownButtonPressedAt, volumeDownButtonHeld);
 
   if (keyboard.isConnected()) {
     if (!connected) {
@@ -103,14 +117,31 @@ void loop() {
 
     // pairing -- only play & volume up buttons pressed for 5 seconds
     if (playPauseButton && volumeUpButton &&
+        now-playPauseButtonHeld > 5000 && now-volumeUpButtonHeld > 5000 &&
         !(skipForwardButton || skipBackwardButton || volumeDownButton)) {
-      Serial.println("pairing mode");
-    } else {  // not pairing
-      if (playPauseButton) keyboard.tap(MEDIA_PLAY_PAUSE);
-      if (skipForwardButton) keyboard.tap(MEDIA_NEXT_TRACK);
-      if (skipBackwardButton) keyboard.tap(MEDIA_PREV_TRACK);
-      if (volumeUpButton) keyboard.tap(MEDIA_VOLUME_UP);
-      if (volumeDownButton) keyboard.tap(MEDIA_VOLUME_DOWN);
+      Serial.println("start pairing mode");
+      keyboard.clearBonds();
+    // everything else -- tap once, if held longer than 750ms keep tapping
+    } else if (playPauseButton) {                               // play/pause
+      if (playPauseButtonHeld == 0) keyboard.tap(MEDIA_PLAY_PAUSE);
+      else if (now - playPauseButtonHeld > 750)
+        keyboard.tap(MEDIA_PLAY_PAUSE, 0, 200);
+    } else if (skipForwardButton) {                             // skip forward
+      if (skipForwardButtonHeld == 0) keyboard.tap(MEDIA_NEXT_TRACK);
+      else if (now - skipForwardButtonHeld > 750)
+        keyboard.tap(MEDIA_NEXT_TRACK, 0, 200);
+    } else if (skipBackwardButton) {                            // skip backward
+      if (skipBackwardButtonHeld == 0) keyboard.tap(MEDIA_PREV_TRACK);
+      else if (now - skipBackwardButtonHeld > 750)
+        keyboard.tap(MEDIA_PREV_TRACK, 0, 200);
+    } else if (volumeUpButton) {                                // volume up
+      if (volumeUpButtonHeld == 0) keyboard.tap(MEDIA_VOLUME_UP);
+      else if (now - volumeUpButtonHeld > 750)
+        keyboard.tap(MEDIA_VOLUME_UP, 0, 200);
+    } else if (volumeDownButton) {                              // volume down
+      if (volumeDownButtonHeld == 0) keyboard.tap(MEDIA_VOLUME_DOWN);
+      else if (now - volumeDownButtonHeld > 750)
+        keyboard.tap(MEDIA_VOLUME_DOWN, 0, 200);
     }
   } else {
     if (connected) {
