@@ -1,27 +1,69 @@
-import libaries
-initialize bluetooth
-define pins
+DEFINE button pins for:
+    play/pause, skip forward, skip backward, volume up, volume down
 
-setup():
-    initialize serial for debugging
-    initialize pins
+INITIALIZE Bluetooth keyboard
+INITIALIZE connection state and button timing state
 
-    start bluetooth
+FUNCTION setRGB(red, green, blue):
+    set each LED output, accounting for active-low LEDs
 
-loop():
-    read button pins
+FUNCTION updateButtonHeld(currentState, previousState, currentTime, pressStart, heldDuration):
+    IF button is pressed:
+        IF it was not pressed in the previous loop:
+            pressStart = currentTime
+        heldDuration = currentTime - pressStart
+    ELSE:
+        reset pressStart and heldDuration
 
-    calculate how long every button has been held for
+FUNCTION setup():
+    start serial communication and wait for it to be ready
+    configure button pins as inputs
+    configure RGB LED pins as outputs
+    configure and start the Bluetooth keyboard
+    print that Bluetooth has started
+    show the startup LED color
+    wait 5 seconds
 
-    if bluetooth connected:        
-        detect pairing button stuff
-        play/pause button stuff
-        skip forward button stuff
-        skip backward button stuff
-        volume up botton stuff
-        volume down button stuff
+FUNCTION loop():
+    read all button states
+    get current time
+    update each button's held duration
 
-    else (bluetooth not connected)
-        search for device every 1 second
+    IF Bluetooth keyboard is connected:
+        IF this is a newly detected connection:
+            print connection message
+            blink the connection LED four times
+            set connected state
+            wait briefly
 
-    store buttons pressed in this loop
+        print current button states
+
+        IF play/pause and volume-up are both held longer than 5 seconds
+           AND skip-forward, skip-backward, and volume-down are not pressed:
+            print pairing-mode message
+            clear saved Bluetooth bonds
+        ELSE IF play/pause is pressed:
+            tap play/pause on the initial press
+            repeat the tap every 200 ms after it has been held longer than 750 ms
+        ELSE IF skip-forward is pressed:
+            tap next track on the initial press
+            repeat every 200 ms after 750 ms
+        ELSE IF skip-backward is pressed:
+            tap previous track on the initial press
+            repeat every 200 ms after 750 ms
+        ELSE IF volume-up is pressed:
+            tap volume up on the initial press
+            repeat every 200 ms after 750 ms
+        ELSE IF volume-down is pressed:
+            tap volume down on the initial press
+            repeat every 200 ms after 750 ms
+    ELSE:
+        IF previously connected:
+            print disconnection message
+            clear connected state
+
+        print that the device is searching
+        blink the blue LED
+
+    save current button states as previous states
+    release all Bluetooth keyboard keys
