@@ -117,30 +117,30 @@ void loop() {
 
     // pairing -- only play & volume up buttons pressed for 5 seconds
     if (playPauseButton && volumeUpButton &&
-        now-playPauseButtonHeld > 5000 && now-volumeUpButtonHeld > 5000 &&
+        playPauseButtonHeld > 5000 && volumeUpButtonHeld > 5000 &&
         !(skipForwardButton || skipBackwardButton || volumeDownButton)) {
       Serial.println("start pairing mode");
       keyboard.clearBonds();
     // everything else -- tap once, if held longer than 750ms keep tapping
     } else if (playPauseButton) {                               // play/pause
       if (playPauseButtonHeld == 0) keyboard.tap(MEDIA_PLAY_PAUSE);
-      else if (now - playPauseButtonHeld > 750)
+      else if (playPauseButtonHeld > 750)
         keyboard.tap(MEDIA_PLAY_PAUSE, 0, 200);
     } else if (skipForwardButton) {                             // skip forward
       if (skipForwardButtonHeld == 0) keyboard.tap(MEDIA_NEXT_TRACK);
-      else if (now - skipForwardButtonHeld > 750)
+      else if (skipForwardButtonHeld > 750)
         keyboard.tap(MEDIA_NEXT_TRACK, 0, 200);
     } else if (skipBackwardButton) {                            // skip backward
       if (skipBackwardButtonHeld == 0) keyboard.tap(MEDIA_PREV_TRACK);
-      else if (now - skipBackwardButtonHeld > 750)
+      else if (skipBackwardButtonHeld > 750)
         keyboard.tap(MEDIA_PREV_TRACK, 0, 200);
     } else if (volumeUpButton) {                                // volume up
       if (volumeUpButtonHeld == 0) keyboard.tap(MEDIA_VOLUME_UP);
-      else if (now - volumeUpButtonHeld > 750)
+      else if (volumeUpButtonHeld > 750)
         keyboard.tap(MEDIA_VOLUME_UP, 0, 200);
     } else if (volumeDownButton) {                              // volume down
       if (volumeDownButtonHeld == 0) keyboard.tap(MEDIA_VOLUME_DOWN);
-      else if (now - volumeDownButtonHeld > 750)
+      else if (volumeDownButtonHeld > 750)
         keyboard.tap(MEDIA_VOLUME_DOWN, 0, 200);
     }
   } else {
