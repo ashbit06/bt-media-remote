@@ -9,7 +9,11 @@ enum {
   SKIP_FORWARD = 3,
   SKIP_BACKWARD = 4,
   VOLUME_UP = 5,
-  VOLUME_DOWN = 6
+  VOLUME_DOWN = 6,
+  BAT = A0,
+  LED_R = A1,
+  LED_G = A2,
+  LED_B = A3
 };
 
 
@@ -55,16 +59,17 @@ void setup() {
   Serial.begin(115200);
   while (!Serial) {}
 
-  // initialize inputs
-  pinMode(PLAY_PAUSE, INPUT);
-  pinMode(SKIP_FORWARD, INPUT);
-  pinMode(SKIP_BACKWARD, INPUT);
-  pinMode(VOLUME_UP, INPUT);
-  pinMode(VOLUME_DOWN, INPUT);
+  // initialize pins
+  pinMode(PLAY_PAUSE, INPUT_PULLDOWN);
+  pinMode(SKIP_FORWARD, INPUT_PULLDOWN);
+  pinMode(SKIP_BACKWARD, INPUT_PULLDOWN);
+  pinMode(VOLUME_UP, INPUT_PULLDOWN);
+  pinMode(VOLUME_DOWN, INPUT_PULLDOWN);
+  pinMode(BAT, INPUT);
 
-  pinMode(LEDR, OUTPUT);
-  pinMode(LEDG, OUTPUT);
-  pinMode(LEDB, OUTPUT);
+  pinMode(LED_R, OUTPUT);
+  pinMode(LED_G, OUTPUT);
+  pinMode(LED_B, OUTPUT);
 
   // initialize bluetooth keyboard
   keyboard.setTapDelay(50);
@@ -142,6 +147,12 @@ void loop() {
       if (volumeDownButtonHeld == 0) keyboard.tap(MEDIA_VOLUME_DOWN);
       else if (volumeDownButtonHeld > 750)
         keyboard.tap(MEDIA_VOLUME_DOWN, 0, 200);
+    }
+
+    // update battery level every 5 seconds
+    if (now % 5000 == 0) {
+      keyboard.setBatteryLevel(analogRead(BAT));
+      // TODO(ashbit06): use an actual battery percentage calculation
     }
   } else {
     if (connected) {
