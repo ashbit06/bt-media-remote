@@ -1,9 +1,28 @@
+// Copyright 2026 group 4
+
+/**
+ * @file bt-media-remote.ino
+ * bluetooth media remote for the arduino nano esp32.
+ *
+ * pretends to be a bluetooth keyboard and sends media keys.
+ *
+ * hold a button to keep repeating it, hold play + volume up for 5 seconds to
+ * go into pairing mode.
+ *
+ * led colors:
+ * - green = starting up
+ * - blinking blue = looking for a device
+ * - white = connected
+ */
+
 #include <HijelHID_BLEKeyboard.h>
 #include <string.h>
+#include <cstdio>
 
-
+/** bluetooth keyboard with its name, manufacturer, and battery level. */
 HijelHID_BLEKeyboard keyboard("bt-remote", "group 4", 100);
 
+/** pin numbers, buttons read HIGH when pressed. */
 enum {
   PLAY_PAUSE = 2,
   SKIP_FORWARD = 3,
@@ -16,35 +35,68 @@ enum {
   LED_B = A3
 };
 
-
-// extra variable for detecting the moment when we are connected
+/** extra variable for detecting the moment when we are connected. */
 int connected = 0;
 
-// keep track of what buttons are currently held
-int playPauseButton, skipForwardButton, skipBackwardButton,
-  volumeUpButton, volumeDownButton = 0;
+/**
+ * @name current button states
+ *
+ * keep track of what buttons are currently held.
+ * @{
+ */
+int playPauseButton, skipForwardButton, skipBackwardButton, volumeUpButton,
+    volumeDownButton = 0;
+/** @} */
 
-// keep track of what buttons were pressed in the previous loop
-int playPauseButtonLast, skipForwardButtonLast,
-  skipBackwardButtonLast, volumeUpButtonLast, volumeDownButtonLast = 0;
+/**
+ * @name previous button states
+ *
+ * keep track of what buttons were pressed in the previous loop.
+ * @{
+ */
+int playPauseButtonLast, skipForwardButtonLast, skipBackwardButtonLast,
+    volumeUpButtonLast, volumeDownButtonLast = 0;
+/** @} */
 
-// Track held duration in milliseconds, with a start timestamp for each press.
-uint32_t playPauseButtonHeld, skipForwardButtonHeld,
-  skipBackwardButtonHeld, volumeUpButtonHeld, volumeDownButtonHeld = 0;
+/**
+ * @name held times
+ *
+ * how long each button has been held in milliseconds.
+ * @{
+ */
+uint32_t playPauseButtonHeld, skipForwardButtonHeld, skipBackwardButtonHeld,
+    volumeUpButtonHeld, volumeDownButtonHeld = 0;
+/** @} */
 
+/**
+ * @name press times
+ *
+ * when each button was pressed.
+ * @{
+ */
 uint32_t playPauseButtonPressedAt, skipForwardButtonPressedAt,
-  skipBackwardButtonPressedAt, volumeUpButtonPressedAt,
-  volumeDownButtonPressedAt = 0;
+    skipBackwardButtonPressedAt, volumeUpButtonPressedAt,
+    volumeDownButtonPressedAt = 0;
+/** @} */
 
-
+/** set the led color. */
 void writeRGB(bool r, bool g, bool b) {
   analogWrite(LEDR, r);
   analogWrite(LEDG, g);
   analogWrite(LEDB, b);
 }
 
+/**
+ * work out how long a button has been held.
+ *
+ * - button -- is the button pressed right now
+ * - buttonLast -- was it pressed last loop
+ * - now -- current time in milliseconds
+ * - pressedAt -- when the press started, gets updated
+ * - held -- how long it has been held, 0 on the first press
+ */
 void updateButtonHeld(int button, int buttonLast, uint32_t now,
-  uint32_t &pressedAt, uint32_t &held) {
+                      uint32_t& pressedAt, uint32_t& held) {
   if (button) {
     if (!buttonLast) pressedAt = now;
     held = now - pressedAt;
@@ -54,8 +106,10 @@ void updateButtonHeld(int button, int buttonLast, uint32_t now,
   }
 }
 
+/** start serial, the pins, and bluetooth. */
 void setup() {
   // initialize serial, disable when not connected to usb
+  // otherwise it gets stuck here
   Serial.begin(115200);
   while (!Serial) {}
 
@@ -80,6 +134,7 @@ void setup() {
   delay(5000);
 }
 
+/** read the buttons and send keys, or look for a device. */
 void loop() {
   playPauseButton = digitalRead(PLAY_PAUSE);
   skipForwardButton = digitalRead(SKIP_FORWARD);
@@ -87,19 +142,21 @@ void loop() {
   volumeUpButton = digitalRead(VOLUME_UP);
   volumeDownButton = digitalRead(VOLUME_DOWN);
 
+  // update how long each button has been held
   uint32_t now = millis();
   updateButtonHeld(playPauseButton, playPauseButtonLast, now,
-    playPauseButtonPressedAt, playPauseButtonHeld);
+                   playPauseButtonPressedAt, playPauseButtonHeld);
   updateButtonHeld(skipForwardButton, skipForwardButtonLast, now,
-    skipForwardButtonPressedAt, skipForwardButtonHeld);
+                   skipForwardButtonPressedAt, skipForwardButtonHeld);
   updateButtonHeld(skipBackwardButton, skipBackwardButtonLast, now,
-    skipBackwardButtonPressedAt, skipBackwardButtonHeld);
+                   skipBackwardButtonPressedAt, skipBackwardButtonHeld);
   updateButtonHeld(volumeUpButton, volumeUpButtonLast, now,
-    volumeUpButtonPressedAt, volumeUpButtonHeld);
+                   volumeUpButtonPressedAt, volumeUpButtonHeld);
   updateButtonHeld(volumeDownButton, volumeDownButtonLast, now,
-    volumeDownButtonPressedAt, volumeDownButtonHeld);
+                   volumeDownButtonPressedAt, volumeDownButtonHeld);
 
   if (keyboard.isConnected()) {
+    // just connected
     if (!connected) {
       Serial.println("connected to device");
       for (int i = 0; i < 4; i++) {
@@ -114,37 +171,44 @@ void loop() {
       delay(500);
     }
 
+    // print button states for debugging
     char buffer[10];
     snprintf(buffer, sizeof(buffer), "%d %d %d %d %d", playPauseButton,
-      skipBackwardButton, skipForwardButton, volumeUpButton, volumeDownButton);
+             skipBackwardButton, skipForwardButton, volumeUpButton,
+             volumeDownButton);
     Serial.println("P < > + -");
     Serial.println(buffer);
 
     // pairing -- only play & volume up buttons pressed for 5 seconds
-    if (playPauseButton && volumeUpButton &&
-        playPauseButtonHeld > 5000 && volumeUpButtonHeld > 5000 &&
+    // everything else -- tap once, if held longer than 750ms keep tapping
+    if (playPauseButton && volumeUpButton && playPauseButtonHeld > 5000 &&
+        volumeUpButtonHeld > 5000 &&
         !(skipForwardButton || skipBackwardButton || volumeDownButton)) {
       Serial.println("start pairing mode");
       keyboard.clearBonds();
-    // everything else -- tap once, if held longer than 750ms keep tapping
-    } else if (playPauseButton) {                               // play/pause
-      if (playPauseButtonHeld == 0) keyboard.tap(MEDIA_PLAY_PAUSE);
+    } else if (playPauseButton) {  // play/pause
+      if (playPauseButtonHeld == 0)
+        keyboard.tap(MEDIA_PLAY_PAUSE);
       else if (playPauseButtonHeld > 750)
         keyboard.tap(MEDIA_PLAY_PAUSE, 0, 200);
-    } else if (skipForwardButton) {                             // skip forward
-      if (skipForwardButtonHeld == 0) keyboard.tap(MEDIA_NEXT_TRACK);
+    } else if (skipForwardButton) {  // skip forward
+      if (skipForwardButtonHeld == 0)
+        keyboard.tap(MEDIA_NEXT_TRACK);
       else if (skipForwardButtonHeld > 750)
         keyboard.tap(MEDIA_NEXT_TRACK, 0, 200);
-    } else if (skipBackwardButton) {                            // skip backward
-      if (skipBackwardButtonHeld == 0) keyboard.tap(MEDIA_PREV_TRACK);
+    } else if (skipBackwardButton) {  // skip backward
+      if (skipBackwardButtonHeld == 0)
+        keyboard.tap(MEDIA_PREV_TRACK);
       else if (skipBackwardButtonHeld > 750)
         keyboard.tap(MEDIA_PREV_TRACK, 0, 200);
-    } else if (volumeUpButton) {                                // volume up
-      if (volumeUpButtonHeld == 0) keyboard.tap(MEDIA_VOLUME_UP);
+    } else if (volumeUpButton) {  // volume up
+      if (volumeUpButtonHeld == 0)
+        keyboard.tap(MEDIA_VOLUME_UP);
       else if (volumeUpButtonHeld > 750)
         keyboard.tap(MEDIA_VOLUME_UP, 0, 200);
-    } else if (volumeDownButton) {                              // volume down
-      if (volumeDownButtonHeld == 0) keyboard.tap(MEDIA_VOLUME_DOWN);
+    } else if (volumeDownButton) {  // volume down
+      if (volumeDownButtonHeld == 0)
+        keyboard.tap(MEDIA_VOLUME_DOWN);
       else if (volumeDownButtonHeld > 750)
         keyboard.tap(MEDIA_VOLUME_DOWN, 0, 200);
     }
@@ -155,6 +219,7 @@ void loop() {
       // TODO(ashbit06): use an actual battery percentage calculation
     }
   } else {
+    // just disconnected
     if (connected) {
       Serial.println("disconnected from device");
       connected = 0;
@@ -169,6 +234,7 @@ void loop() {
     delay(500);
   }
 
+  // remember button states for the next loop
   playPauseButtonLast = playPauseButton;
   skipForwardButtonLast = skipForwardButton;
   skipBackwardButtonLast = skipBackwardButton;

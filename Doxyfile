@@ -1,0 +1,22 @@
+# run "doxygen" from this folder, open docs/html/index.html to see the output
+
+PROJECT_NAME           = "Bluetooth Media Remote"
+OUTPUT_DIRECTORY       = docs
+
+INPUT                  = bt-media-remote.ino README.md
+USE_MDFILE_AS_MAINPAGE = README.md
+
+# doxygen doesn't know about .ino files, it's just c++
+FILE_PATTERNS          = *.ino *.md
+EXTENSION_MAPPING      = ino=C++
+
+# first sentence of a comment becomes the summary
+JAVADOC_AUTOBRIEF      = YES
+
+# give every function its own entry, even ones with a one line comment
+ALWAYS_DETAILED_SEC    = YES
+
+# the button variables share one group comment, doxygen counts that as undocumented
+WARN_IF_UNDOCUMENTED   = NO
+
+GENERATE_LATEX         = NO

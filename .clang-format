@@ -1,0 +1,6 @@
+# vscode's format on save uses this, google style matches what cpplint checks
+BasedOnStyle: Google
+Language: Cpp
+SortIncludes: Never
+# keeps empty loops like while (!Serial) {} on one line
+AllowShortBlocksOnASingleLine: Empty
