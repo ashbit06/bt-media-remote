@@ -189,18 +189,18 @@ void loop() {
     } else if (playPauseButton) {  // play/pause
       if (playPauseButtonHeld == 0)
         keyboard.tap(MEDIA_PLAY_PAUSE);
-      else if (playPauseButtonHeld > 750)
-        keyboard.tap(MEDIA_PLAY_PAUSE, 0, 200);
+      else if (playPauseButtonHeld > 1000)
+        keyboard.tap(MEDIA_PLAY_PAUSE, 0, 500);
     } else if (skipForwardButton) {  // skip forward
       if (skipForwardButtonHeld == 0)
         keyboard.tap(MEDIA_NEXT_TRACK);
-      else if (skipForwardButtonHeld > 750)
-        keyboard.tap(MEDIA_NEXT_TRACK, 0, 200);
+      else if (skipForwardButtonHeld > 1000)
+        keyboard.tap(MEDIA_NEXT_TRACK, 0, 500);
     } else if (skipBackwardButton) {  // skip backward
       if (skipBackwardButtonHeld == 0)
         keyboard.tap(MEDIA_PREV_TRACK);
-      else if (skipBackwardButtonHeld > 750)
-        keyboard.tap(MEDIA_PREV_TRACK, 0, 200);
+      else if (skipBackwardButtonHeld > 1000)
+        keyboard.tap(MEDIA_PREV_TRACK, 0, 500);
     } else if (volumeUpButton) {  // volume up
       if (volumeUpButtonHeld == 0)
         keyboard.tap(MEDIA_VOLUME_UP);

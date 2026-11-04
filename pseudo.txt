@@ -44,19 +44,23 @@ FUNCTION loop():
             clear saved Bluetooth bonds
         ELSE IF play/pause is pressed:
             tap play/pause on the initial press
-            repeat the tap every 200 ms after it has been held longer than 750 ms
+            repeat the tap every 500 ms after it has been held longer than 1000 ms
         ELSE IF skip-forward is pressed:
             tap next track on the initial press
-            repeat every 200 ms after 750 ms
+            repeat every 500 ms after 1000 ms
         ELSE IF skip-backward is pressed:
             tap previous track on the initial press
-            repeat every 200 ms after 750 ms
+            repeat every 500 ms after 1000 ms
         ELSE IF volume-up is pressed:
             tap volume up on the initial press
             repeat every 200 ms after 750 ms
         ELSE IF volume-down is pressed:
             tap volume down on the initial press
             repeat every 200 ms after 750 ms
+
+        IF it has been 5 seconds since the last battery update:
+            read the battery pin value
+            update the Bluetooth keyboard battery level
     ELSE:
         IF previously connected:
             print disconnection message
