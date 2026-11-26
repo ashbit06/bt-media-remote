@@ -16,11 +16,13 @@
  */
 
 #include <HijelHID_BLEKeyboard.h>
+#include <Preferences.h>
 #include <string.h>
 #include <cstdio>
 
 /** bluetooth keyboard with its name, manufacturer, and battery level. */
 HijelHID_BLEKeyboard keyboard("bt-remote", "group 4", 100);
+Preferences prefs;
 
 /** pin numbers, buttons read HIGH when pressed. */
 enum {
@@ -111,7 +113,10 @@ void setup() {
   // initialize serial, disable when not connected to usb
   // otherwise it gets stuck here
   Serial.begin(115200);
-  while (!Serial) {}
+  // while (!Serial) {}
+
+  // initialize preferences
+  prefs.begin("bt-remote");
 
   // initialize pins
   pinMode(PLAY_PAUSE, INPUT_PULLDOWN);
